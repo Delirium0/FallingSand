@@ -17,9 +17,8 @@
 # move_along_path(path)
 import math
 
-# Пример значений для vel.y и vel.x
 vel_y = 221
-vel_x = 0
+vel_x = 11
 
 # Расчет absY
 absY = max(abs(vel_y) / 31, 105)

@@ -18,6 +18,7 @@ COLORS = {
 pygame.init()
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("qefqefqef Sand qefqefqefqe")
+font = pygame.font.Font(None, 36)
 
 # Создание сетки
 grid_width = WIDTH // CELL_SIZE
@@ -57,10 +58,8 @@ class MoveSolid(Solid):
             elif isinstance(target_cell, Solid):
                 if y + 1 < grid_height and x > 0 and grid[x - 1][y + 1] is None:
                     grid[x][y], grid[x - 1][y + 1] = None, self
-                    print('лево')
                 elif y + 1 < grid_height and x < grid_width - 1 and grid[x + 1][y + 1] is None:
                     grid[x][y], grid[x + 1][y + 1] = None, self
-                    print('право')
 
 
 class Liquid(Material):
@@ -69,51 +68,31 @@ class Liquid(Material):
         super().__init__(name, color, 'Liquid', self.dispersion_rape)
 
     def update(self, x, y, grid):
-        # тут просто вниз
-        if y + 1 < grid_height and grid[x][y + 1] is None:
+        if y + 1 < len(grid[0]) and grid[x][y + 1] is None:
             grid[x][y], grid[x][y + 1] = None, self
-        # тут по диагонали
-        elif y + 1 < grid_height and x > 0 and grid[x - 1][y + 1] is None:
+        elif y + 1 < len(grid[0]) and x > 0 and grid[x - 1][y + 1] is None:
             grid[x][y], grid[x - 1][y + 1] = None, self
-        elif y + 1 < grid_height and x < grid_width - 1 and grid[x + 1][y + 1] is None:
+        elif y + 1 < len(grid[0]) and x < len(grid) - 1 and grid[x + 1][y + 1] is None:
             grid[x][y], grid[x + 1][y + 1] = None, self
-
         else:
             direction = random.choice([-1, 1])
-
             if direction == -1:
-                if 0 < x and grid[x - 1][y] is None:
-                    grid[x][y], grid[x - 1][y] = None, self
-
+                for dispersion_range in range(1, self.dispersion_rape):
+                    if 0 <= x - dispersion_range < len(grid) and grid[x - dispersion_range][y] is None:
+                        grid[x - dispersion_range][y], grid[x - dispersion_range + 1][y] = self, None
+                    else:
+                        break
             else:
-                if x < grid_width - 1 and grid[x + 1][y] is None:
-                    grid[x][y], grid[x + 1][y] = None, self
-                # print(dispersion_range, direction, x + direction * dispersion_range)
-                # if 0 <= x + direction < grid_width and grid[x + direction][y] is None:
-                #     if self.dispersion_rape == dispersion_range + 1:
-                #         grid[x][y], grid[x + direction * dispersion_range][y] = None, self
-                # else:
-                #     grid[x][y], grid[x + direction * dispersion_range][y] = None, self
-                #     break
-            ###########################################################
-            # if 0 <= x + direction < grid_width and grid[x + direction][y] is None:
-            #     grid[x][y], grid[x + direction][y] = None, self
+                for dispersion_range in range(1, self.dispersion_rape):
+                    if 0 <= x + dispersion_range < len(grid) and grid[x + dispersion_range][y] is None:
+                        grid[x + dispersion_range][y], grid[x + dispersion_range - 1][y] = self, None
+                    else:
+                        break
 
 
 class Sand(MoveSolid):
     def __init__(self):
         super().__init__('sand', COLORS['sand'])
-
-    # def update(self, x, y, grid):
-    #
-    #     if y + 1 < grid_height and grid[x][y + 1] is None:
-    #         grid[x][y], grid[x][y + 1] = None, self
-    #     elif y + 1 < grid_height and isinstance(grid[x][y + 1], Water):
-    #         grid[x][y], grid[x][y + 1] = grid[x][y + 1], self
-    #     elif y + 1 < grid_height and x > 0 and grid[x - 1][y + 1] is None:
-    #         grid[x][y], grid[x - 1][y + 1] = None, self
-    #     elif y + 1 < grid_height and x < grid_width - 1 and grid[x + 1][y + 1] is None:
-    #         grid[x][y], grid[x + 1][y + 1] = None, self
 
 
 class Metal(Solid):
@@ -142,38 +121,66 @@ def update_grid():
                 material.update(x, y, grid)
 
 
+def count_materials():
+    material_count = {'sand': 0, 'water': 0, 'metal': 0}
+    for row in grid:
+        for cell in row:
+            if isinstance(cell, Sand):
+                material_count['sand'] += 1
+            elif isinstance(cell, Water):
+                material_count['water'] += 1
+            elif isinstance(cell, Metal):
+                material_count['metal'] += 1
+    return material_count
+
+
+def draw_text(text, pos):
+    text_surface = font.render(text, True, (255, 255, 255))
+    screen.blit(text_surface, pos)
+
+
 running = True
 clock = pygame.time.Clock()
-
 while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
-        elif event.type == pygame.MOUSEBUTTONDOWN:
-            mx, my = pygame.mouse.get_pos()
-            grid_x = mx // CELL_SIZE
-            grid_y = my // CELL_SIZE
-            radius = 10
 
-            if grid_x < grid_width and grid_y < grid_height:
-                if event.button == 1:  # Левая кнопка мыши
-                    for i in range(radius):
-                        for j in range(radius):
-                            grid[grid_x + i][grid_y + j] = Sand()
-                elif event.button == 3:  # Правая кнопка мыши
-
-                    for i in range(radius):
-                        for j in range(radius):
-                            grid[grid_x + i][grid_y + j] = Water()
-                elif event.button == 2:  # Правая кнопка мыши
-                    radius = 15
-                    for i in range(radius):
-                        for j in range(radius):
-                            grid[grid_x + i][grid_y + j] = Metal()
-
+    # Обработка зажатых кнопок мыши
+    mouse_buttons = pygame.mouse.get_pressed()
+    mouse_x, mouse_y = pygame.mouse.get_pos()
+    grid_x = mouse_x // CELL_SIZE
+    grid_y = mouse_y // CELL_SIZE
+    radius = 10
+    if mouse_buttons[0]:  # Левая кнопка мыши зажата
+        if grid_x < grid_width and grid_y < grid_height:
+            for i in range(radius):
+                for j in range(radius):
+                    if 0 <= grid_x + i < grid_width and 0 <= grid_y + j < grid_height:
+                        grid[grid_x + i][grid_y + j] = Sand()
+    elif mouse_buttons[2]:  # Правая кнопка мыши зажата
+        if grid_x < grid_width and grid_y < grid_height:
+            for i in range(radius):
+                for j in range(radius):
+                    if 0 <= grid_x + i < grid_width and 0 <= grid_y + j < grid_height:
+                        grid[grid_x + i][grid_y + j] = Water()
+    elif mouse_buttons[1]:  # Средняя кнопка мыши зажата
+        radius = 15
+        if grid_x < grid_width and grid_y < grid_height:
+            for i in range(radius):
+                for j in range(radius):
+                    if 0 <= grid_x + i < grid_width and 0 <= grid_y + j < grid_height:
+                        grid[grid_x + i][grid_y + j] = Metal()
     update_grid()
     screen.fill(COLORS['empty'])
     draw_grid()
+
+    # Подсчет и отображение количества блоков
+    material_count = count_materials()
+    draw_text(f"Sand: {material_count['sand']}", (10, 10))
+    draw_text(f"Water: {material_count['water']}", (10, 50))
+    draw_text(f"Metal: {material_count['metal']}", (10, 90))
+
     pygame.display.flip()
     clock.tick(60)
 
