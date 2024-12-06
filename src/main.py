@@ -5,11 +5,33 @@ from src.materials.materials import Sand, Metal, Water
 
 # Инициализация Pygame
 pygame.init()
+
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Sand")
 font = pygame.font.Font(None, 36)
 
 grid = [[None for _ in range(grid_height)] for _ in range(grid_width)]
+
+
+def create_metal_platform():
+    # Определяем размеры платформы и ее местоположение
+    platform_width = 150  # Ширина платформы в клетках
+    platform_height = 5  # Высота платформы в клетках
+    center_x = grid_width // 2
+    center_y = grid_height // 2
+
+    # Вычисляем начальные координаты платформы
+    start_x = center_x - platform_width // 2
+    start_y = center_y - platform_height // 2
+
+    # Заполняем платформу металлом
+    for x in range(start_x, start_x + platform_width):
+        for y in range(start_y, start_y + platform_height):
+            if 0 <= x < grid_width and 0 <= y < grid_height:
+                grid[x][y] = Metal(x=x, y=y)
+
+
+create_metal_platform()
 
 current_material = Water
 radius = 1
@@ -31,6 +53,7 @@ def update_grid():
 
         for x in range(grid_width):
             material = grid[x][y]
+            # if material and (not material.updated and material.frames_since_update < 3):
             if material and not material.updated:
                 materials_to_update.append(material)
     for material in materials_to_update:
@@ -63,11 +86,22 @@ def add_material_to_grid(grid_x, grid_y, material_class, radius):
     else:
         for i in range(-radius, radius + 1):
             for j in range(-radius, radius + 1):
-                if i ** 2 + j ** 2 <= radius ** 2:
-                    x = grid_x + i
-                    y = grid_y + j
-                    if 0 <= x < grid_width and 0 <= y < grid_height:
-                        grid[x][y] = material_class(x=x, y=y)
+                distance_squared = i ** 2 + j ** 2
+                if distance_squared <= radius ** 2:
+                    # Проверяем, является ли материал металлом
+                    if material_class.__name__ == "Metal":
+                        # Для металла просто заполняем сферу
+                        x = grid_x + i
+                        y = grid_y + j
+                        if 0 <= x < grid_width and 0 <= y < grid_height:
+                            grid[x][y] = material_class(x=x, y=y)
+                    else:
+                        # Для других материалов создаем пробелы
+                        if distance_squared % 2 == 0:  # Оставляем пробелы
+                            x = grid_x + i
+                            y = grid_y + j
+                            if 0 <= x < grid_width and 0 <= y < grid_height:
+                                grid[x][y] = material_class(x=x, y=y)
 
 
 running = True
